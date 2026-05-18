@@ -15,7 +15,7 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({ guestName, guestId, slug }: ChatInterfaceProps) {
-  const [booted, setBooted] = useState(false);
+  const [booted, setBooted] = useState(true); // Langsung true
   const [wishText, setWishText] = useState("");
   const [paxSelected, setPaxSelected] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,12 +33,11 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
     sendWish,
   } = useConversation(guestName, guestId, slug);
 
-  // Auto-start conversation after loading screen
-  // useCallback keeps the reference stable so LoadingScreen's effect doesn't re-run
-  const handleBoot = useCallback(() => {
-    setBooted(true);
+  // Auto-start conversation since we removed loading screen
+  useEffect(() => {
     start();
-  }, [start]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -56,7 +55,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
   return (
     <>
       {/* Loading Screen */}
-      {!booted && <LoadingScreen onComplete={handleBoot} />}
+      {/* {!booted && <LoadingScreen onComplete={handleBoot} />} */}
 
       {/* Main chat UI */}
       <AnimatePresence>
@@ -66,30 +65,62 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
-            className="flex flex-col h-dvh max-h-dvh bg-[#0a0a0a]"
+            className="flex flex-row h-dvh max-h-dvh bg-[var(--color-canvas)] text-[var(--color-ink)]"
           >
-            {/* ── Header ─────────────────────────────────────────────── */}
-            <header className="flex-shrink-0 border-b border-white/7 px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center">
-                <span className="text-[10px] text-emerald-400 font-bold">AI</span>
+            {/* ── Sidebar (Desktop) ──────────────────────────────────── */}
+            <aside className="hidden md:flex flex-col w-[300px] border-r border-[var(--color-hairline)] bg-[var(--color-surface-soft)]">
+              <div className="p-4 border-b border-[var(--color-hairline)]">
+                <h2 className="font-bold text-[var(--color-ink)] text-sm uppercase tracking-wider">
+                  OpenCode / Wedding
+                </h2>
               </div>
-              <div>
-                <p className="text-sm font-medium text-[#f0f0f0]">Wedding Assistant</p>
-                <p className="text-[10px] text-emerald-400">
-                  {wedding.bride.name} &amp; {wedding.groom.name} · {wedding.date.display}
-                </p>
+              <div className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+                <div>
+                  <p className="text-xs text-[var(--color-muted)] mb-3">GUEST INFO</p>
+                  <p className="text-sm font-medium">{guestName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--color-muted)] mb-3">EVENT HOSTS</p>
+                  <p className="text-sm font-medium">{wedding.bride.name}</p>
+                  <p className="text-sm font-medium">{wedding.groom.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--color-muted)] mb-3">DATE</p>
+                  <p className="text-sm">{wedding.date.display}</p>
+                </div>
               </div>
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] text-[#6b7280]">Online</span>
+              <div className="p-4 border-t border-[var(--color-hairline)]">
+                 <button className="w-full py-2 bg-[var(--color-surface-card)] text-[var(--color-ink)] border border-[var(--color-hairline-strong)] rounded flex items-center justify-center text-xs" onClick={() => dispatch("menu", "Menu Utama")}>
+                   [+] Back to Main Menu
+                 </button>
               </div>
-            </header>
+            </aside>
 
-            {/* ── Messages ───────────────────────────────────────────── */}
-            <div
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto chat-scroll py-4 space-y-1"
-            >
+            {/* ── Main Chat Area ─────────────────────────────────────── */}
+            <div className="flex-1 flex flex-col min-w-0 relative">
+              {/* ── Header ─────────────────────────────────────────────── */}
+              <header className="flex-shrink-0 border-b border-[var(--color-hairline)] px-4 py-3 flex items-center gap-3 bg-[var(--color-canvas)]">
+                <div className="w-8 h-8 rounded-full bg-[var(--color-surface-card)] border border-[var(--color-hairline-strong)] flex items-center justify-center">
+                  <span className="text-[10px] text-[var(--color-ink)] font-bold">AI</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[var(--color-ink)]">Wedding Assistant</p>
+                  <p className="text-[10px] text-[var(--color-muted)]">
+                    {wedding.bride.name} &amp; {wedding.groom.name} · {wedding.date.display}
+                  </p>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-[var(--color-muted)]">Terminal Ready</span>
+                </div>
+              </header>
+
+              {/* ── Messages ───────────────────────────────────────────── */}
+              <div
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto chat-scroll py-6 px-4 md:px-12 space-y-2 bg-[var(--color-canvas)]"
+              >
+
               {messages.map((msg) => (
                 <MessageBubble
                   key={msg.id}
@@ -219,12 +250,28 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
               <div className="h-4" />
             </div>
 
-            {/* ── Footer ─────────────────────────────────────────────── */}
-            <footer className="flex-shrink-0 border-t border-white/7 px-4 py-3">
-              <p className="text-center text-[10px] text-[#3f3f46]">
-                Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name} &copy; {new Date().getFullYear()}
-              </p>
-            </footer>
+            {/* ── Footer & Command Line ──────────────────────────────── */}
+            <div className="flex-shrink-0 p-4 border-t border-[var(--color-hairline)] bg-[var(--color-canvas)]">
+              <div className="max-w-3xl mx-auto">
+                <div className="flex items-center bg-[var(--color-surface-soft)] border border-[var(--color-hairline-strong)] rounded-sm px-3 py-2 shadow-sm focus-within:bg-[var(--color-canvas)] focus-within:border-[var(--color-ink)] transition-colors">
+                  <span className="text-[var(--color-muted)] mr-2">&gt;</span>
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="Pilih prompt di atas untuk berinteraksi..."
+                    className="flex-1 bg-transparent outline-none text-sm placeholder-[var(--color-dim)] text-[var(--color-ink)]"
+                  />
+                  <div className="w-5 h-5 bg-[var(--color-surface-card)] rounded-sm flex items-center justify-center border border-[var(--color-hairline)]">
+                    <span className="text-[10px] text-[var(--color-muted)]">↩</span>
+                  </div>
+                </div>
+                <p className="text-center mt-3 text-[10px] text-[var(--color-dim)]">
+                  Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name} &copy; {new Date().getFullYear()}
+                </p>
+              </div>
+            </div>
+
+            </div> {/* Close Main Chat Area */}
           </motion.div>
         )}
       </AnimatePresence>

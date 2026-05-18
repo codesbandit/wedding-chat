@@ -20,7 +20,7 @@ function parseBold(text: string) {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className="text-[#f0f0f0] font-bold">
+        <strong key={i} className="text-[var(--color-ink-deep)] font-bold">
           {part.slice(2, -2)}
         </strong>
       );
@@ -41,7 +41,7 @@ export default function MessageBubble({ message, onPrompt }: MessageBubbleProps)
         transition={{ duration: 0.25 }}
         className="flex justify-end px-4 py-1"
       >
-        <div className="max-w-[78%] bg-emerald-400/10 border border-emerald-400/20 rounded-xl rounded-br-sm px-4 py-2.5 text-sm text-emerald-100">
+        <div className="max-w-[78%] bg-[var(--color-surface-soft)] border border-[var(--color-hairline-strong)] rounded-sm px-4 py-2.5 text-sm text-[var(--color-ink)]">
           {message.text}
         </div>
       </motion.div>
@@ -52,7 +52,7 @@ export default function MessageBubble({ message, onPrompt }: MessageBubbleProps)
   if (message.text === "---") {
     return (
       <div className="px-4 py-2">
-        <div className="border-t border-white/7" />
+        <div className="border-t border-[var(--color-hairline)]" />
       </div>
     );
   }
@@ -65,13 +65,13 @@ export default function MessageBubble({ message, onPrompt }: MessageBubbleProps)
       className="flex items-end gap-2 px-4 py-1"
     >
       {/* AI avatar */}
-      <div className="w-6 h-6 rounded-full bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center flex-shrink-0 mb-0.5">
-        <span className="text-[8px] text-emerald-400 font-bold">AI</span>
+      <div className="w-6 h-6 rounded-sm bg-[var(--color-surface-card)] border border-[var(--color-hairline-strong)] flex items-center justify-center flex-shrink-0 mb-0.5">
+        <span className="text-[8px] text-[var(--color-ink)] font-bold">AI</span>
       </div>
 
       <div className="flex-1 max-w-[85%] space-y-2">
         {/* Text bubble */}
-        <div className="bg-[#141414] border border-white/7 rounded-xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed text-[#d1d5db] whitespace-pre-line">
+        <div className="bg-transparent border border-[var(--color-hairline)] rounded-sm px-4 py-3 text-sm leading-relaxed text-[var(--color-ink)] whitespace-pre-line">
           {parseBold(message.text)}
           {message.isStreaming && <span className="cursor-blink" />}
         </div>
