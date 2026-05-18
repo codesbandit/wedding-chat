@@ -305,6 +305,30 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
             {/* ── Footer & Command Line (ChatGPT style) ─────────────── */}
             <div className="flex-shrink-0 px-4 pb-4 pt-2 bg-[var(--color-canvas)]">
               <form onSubmit={handleCommandSubmit} className="max-w-2xl mx-auto">
+
+                {/* Suggestion chips — shown when input empty & not in special flow */}
+                {!commandInput && !isTyping && !currentNodeId.startsWith("rsvp-") && currentNodeId !== "doa-start" && (
+                  <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
+                    {[
+                      { label: "Telling Jokes 😄", text: "Buatin jokes dong" },
+                      { label: "📍 Lokasi acara", text: "Lokasinya dimana?" },
+                      { label: "👗 Dress code", text: "Dress code-nya apa?" },
+                      { label: "🕐 Jam acara", text: "Jam berapa acaranya?" },
+                      { label: "💌 Amplop digital", text: "Info amplop digital" },
+                      { label: "🎮 Games", text: "Ajak ngobrol seru-seruan dong" },
+                    ].map((chip) => (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={() => callLLM(chip.text)}
+                        className="flex-shrink-0 text-[11px] text-[var(--color-muted)] border border-[var(--color-hairline-strong)] rounded-full px-3 py-1 hover:bg-[var(--color-surface-card)] hover:text-[var(--color-ink)] transition-colors whitespace-nowrap"
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="rounded-2xl border border-[var(--color-hairline-strong)] bg-[var(--color-surface-soft)] shadow-sm focus-within:border-[var(--color-ink)] focus-within:bg-[var(--color-canvas)] transition-all duration-200">
                   {/* Text input */}
                   <input
