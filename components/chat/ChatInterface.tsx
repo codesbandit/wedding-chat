@@ -302,37 +302,56 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
               <div className="h-4" />
             </div>
 
-            {/* ── Footer & Command Line ──────────────────────────────── */}
-            <div className="flex-shrink-0 p-4 border-t border-[var(--color-hairline)] bg-[var(--color-canvas)]">
-              <form onSubmit={handleCommandSubmit} className="max-w-3xl mx-auto">
-                <div className="flex items-center bg-[var(--color-surface-soft)] border border-[var(--color-hairline-strong)] rounded-sm px-3 py-2 shadow-sm focus-within:bg-[var(--color-canvas)] focus-within:border-[var(--color-ink)] transition-colors">
-                  <span className="text-[var(--color-muted)] mr-2">&gt;</span>
+            {/* ── Footer & Command Line (ChatGPT style) ─────────────── */}
+            <div className="flex-shrink-0 px-4 pb-4 pt-2 bg-[var(--color-canvas)]">
+              <form onSubmit={handleCommandSubmit} className="max-w-2xl mx-auto">
+                <div className="rounded-2xl border border-[var(--color-hairline-strong)] bg-[var(--color-surface-soft)] shadow-sm focus-within:border-[var(--color-ink)] focus-within:bg-[var(--color-canvas)] transition-all duration-200">
+                  {/* Text input */}
                   <input
                     type="text"
                     value={commandInput}
                     onChange={(e) => setCommandInput(e.target.value)}
                     disabled={isTyping}
                     placeholder={
-                      isTyping 
-                        ? "AI sedang mengetik..." 
+                      isTyping
+                        ? "AI sedang mengetik..."
                         : currentNodeId === "doa-start"
                         ? "Ketikkan doa & harapanmu di sini..."
                         : currentNodeId.startsWith("rsvp-")
                         ? "Jawab 'ya hadir' atau 'tidak'..."
-                        : "Ketik perintah (ex: lokasi, cerita, rsvp, amplop)..."
+                        : "Tanyakan apa saja, misal: 'lokasinya dimana ?', 'dress code'..."
                     }
-                    className="flex-1 bg-transparent outline-none text-sm placeholder-[var(--color-dim)] text-[var(--color-ink)] disabled:opacity-50"
+                    className="w-full bg-transparent outline-none text-sm text-[var(--color-ink)] placeholder-[var(--color-dim)] px-4 pt-3 pb-1 disabled:opacity-50"
                   />
-                  <button 
-                    type="submit" 
-                    disabled={isTyping || !commandInput.trim()} 
-                    className="w-5 h-5 bg-[var(--color-surface-card)] rounded-sm flex items-center justify-center border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)] transition-colors disabled:opacity-50"
-                  >
-                    <span className="text-[10px] text-[var(--color-muted)] font-bold">↩</span>
-                  </button>
+
+                  {/* Bottom bar: left actions + right send */}
+                  <div className="flex items-center justify-between px-3 pb-2 pt-1">
+                    {/* Left — plus icon */}
+                    <button
+                      type="button"
+                      className="w-7 h-7 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-surface-card)] transition-colors text-base leading-none"
+                      onClick={() => dispatch("menu", "Menu Utama")}
+                      title="Lihat menu"
+                    >
+                      +
+                    </button>
+
+                    {/* Right — send button */}
+                    <button
+                      type="submit"
+                      disabled={isTyping || !commandInput.trim()}
+                      className="w-8 h-8 rounded-full bg-[var(--color-ink)] flex items-center justify-center transition-all duration-150 disabled:opacity-25 disabled:cursor-not-allowed hover:opacity-80 active:scale-95"
+                      title="Kirim"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[var(--color-canvas)]">
+                        <path d="M12 4L12 20M12 4L6 10M12 4L18 10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-center mt-3 text-[10px] text-[var(--color-dim)]">
-                  Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name} &copy; {new Date().getFullYear()}
+
+                <p className="text-center mt-2 text-[10px] text-[var(--color-dim)]">
+                  Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name}
                 </p>
               </form>
             </div>
