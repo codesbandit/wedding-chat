@@ -7,6 +7,7 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import { wedding } from "@/lib/wedding-config";
+import { nodes } from "@/lib/ai-engine/conversation-tree";
 
 interface ChatInterfaceProps {
   guestName: string;
@@ -18,6 +19,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
   const [booted, setBooted] = useState(true); // Langsung true
   const [wishText, setWishText] = useState("");
   const [paxSelected, setPaxSelected] = useState<number | null>(null);
+  const [commandInput, setCommandInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -51,6 +53,55 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
   const showPaxPicker =
     currentNodeId === "rsvp-yes" && !isTyping && rsvpStatus === "ATTENDING";
   const showWishInput = currentNodeId === "doa-start" && !isTyping;
+
+  const handleCommandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commandInput.trim() || isTyping) return;
+
+    const lowerInput = commandInput.trim().toLowerCase();
+
+    // 1. Direct flow overrides
+    if (currentNodeId === "doa-start") {
+      sendWish(commandInput.trim());
+      setCommandInput("");
+      return;
+    }
+
+    if (currentNodeId === "rsvp-start") {
+      if (lowerInput.includes("ya") || lowerInput.includes("hadir") || lowerInput.includes("bisa")) {
+        confirmRsvpYes();
+        setCommandInput("");
+        return;
+      } else if (lowerInput.includes("tidak") || lowerInput.includes("ngga") || lowerInput.includes("engga") || lowerInput.includes("maaf")) {
+        confirmRsvpNo();
+        setCommandInput("");
+        return;
+      }
+    }
+
+    // 2. Map available quick prompts
+    const currentNode = nodes[currentNodeId];
+    const currentPrompts = currentNode?.prompts || [];
+
+    const exactMatch = currentPrompts.find(
+      (p) => p.label.toLowerCase().includes(lowerInput) || p.target.toLowerCase().includes(lowerInput)
+    );
+
+    if (exactMatch) {
+      dispatch(exactMatch.target, exactMatch.label);
+    } else {
+      // 3. Fallbacks using keywords manually mapping to node ids
+      if (lowerInput.includes("lokasi") || lowerInput.includes("map") || lowerInput.includes("tempat")) dispatch("lokasi", commandInput.trim());
+      else if (lowerInput.includes("jadwal") || lowerInput.includes("tanggal") || lowerInput.includes("waktu")) dispatch("jadwal", commandInput.trim());
+      else if (lowerInput.includes("cerita") || lowerInput.includes("kisah") || lowerInput.includes("story")) dispatch("cerita", commandInput.trim());
+      else if (lowerInput.includes("amplop") || lowerInput.includes("uang")) dispatch("amplop", commandInput.trim());
+      else if (lowerInput.includes("hadiah") || lowerInput.includes("kado")) dispatch("hadiah", commandInput.trim());
+      else if (lowerInput.includes("rsvp") || lowerInput.includes("konfirmasi")) dispatch("rsvp-start", commandInput.trim());
+      else if (lowerInput.includes("doa") || lowerInput.includes("ucapan")) dispatch("doa-start", commandInput.trim());
+      else dispatch("menu", "Perintah tidak diketaui. Menampilkan opsi Menu:"); // Unknown -> Fallback menu
+    }
+    setCommandInput("");
+  };
 
   return (
     <>
@@ -252,23 +303,37 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
 
             {/* ── Footer & Command Line ──────────────────────────────── */}
             <div className="flex-shrink-0 p-4 border-t border-[var(--color-hairline)] bg-[var(--color-canvas)]">
-              <div className="max-w-3xl mx-auto">
+              <form onSubmit={handleCommandSubmit} className="max-w-3xl mx-auto">
                 <div className="flex items-center bg-[var(--color-surface-soft)] border border-[var(--color-hairline-strong)] rounded-sm px-3 py-2 shadow-sm focus-within:bg-[var(--color-canvas)] focus-within:border-[var(--color-ink)] transition-colors">
                   <span className="text-[var(--color-muted)] mr-2">&gt;</span>
                   <input
                     type="text"
-                    disabled
-                    placeholder="Pilih prompt di atas untuk berinteraksi..."
-                    className="flex-1 bg-transparent outline-none text-sm placeholder-[var(--color-dim)] text-[var(--color-ink)]"
+                    value={commandInput}
+                    onChange={(e) => setCommandInput(e.target.value)}
+                    disabled={isTyping}
+                    placeholder={
+                      isTyping 
+                        ? "AI sedang mengetik..." 
+                        : currentNodeId === "doa-start"
+                        ? "Ketikkan doa & harapanmu di sini..."
+                        : currentNodeId.startsWith("rsvp-")
+                        ? "Jawab 'ya hadir' atau 'tidak'..."
+                        : "Ketik perintah (ex: lokasi, cerita, rsvp, amplop)..."
+                    }
+                    className="flex-1 bg-transparent outline-none text-sm placeholder-[var(--color-dim)] text-[var(--color-ink)] disabled:opacity-50"
                   />
-                  <div className="w-5 h-5 bg-[var(--color-surface-card)] rounded-sm flex items-center justify-center border border-[var(--color-hairline)]">
-                    <span className="text-[10px] text-[var(--color-muted)]">↩</span>
-                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={isTyping || !commandInput.trim()} 
+                    className="w-5 h-5 bg-[var(--color-surface-card)] rounded-sm flex items-center justify-center border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)] transition-colors disabled:opacity-50"
+                  >
+                    <span className="text-[10px] text-[var(--color-muted)] font-bold">↩</span>
+                  </button>
                 </div>
                 <p className="text-center mt-3 text-[10px] text-[var(--color-dim)]">
                   Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name} &copy; {new Date().getFullYear()}
                 </p>
-              </div>
+              </form>
             </div>
 
             </div> {/* Close Main Chat Area */}
