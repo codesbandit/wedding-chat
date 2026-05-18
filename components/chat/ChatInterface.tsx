@@ -11,16 +11,16 @@ import { nodes } from "@/lib/ai-engine/conversation-tree";
 
 // ── Game: How Well Do You Know The Couple ─────────────────────────────────
 const COUPLE_GAME = [
-  { q: "Siapa yang pertama kali ngajak ngobrol duluan?", a: "Rhesi" },
-  { q: "Siapa yang paling romantis?", a: "Keduanya" },
-  { q: "Siapa yang paling lama siap-siap?", a: "Rhesi" },
-  { q: "Siapa yang paling sering telat?", a: "Shiddiq" },
-  { q: "Siapa yang paling gampang lapar?", a: "Shiddiq" },
-  { q: "Siapa yang paling suka jajan?", a: "Rhesi" },
-  { q: "Siapa yang paling sering ngajak jalan?", a: "Keduanya" },
+  { q: "Siapa yang paling duluan salting waktu awal dekat?", a: "Rhesi" },
+  { q: "Siapa yang paling sering salah dengar?", a: "Rhesi" },
+  { q: "Siapa yang pertama kali ngajak kenalan?", a: "Rhesi" },
+  { q: "Siapa yang paling jahil?", a: "Shiddiq" },
+  { q: "Siapa yang paling gampang ketawa karena hal receh?", a: "Rhesi" },
+  { q: "Siapa yang paling lama siap-siap kalau mau pergi?", a: "Rhesi" },
+  { q: "Siapa yang paling sering bikin pasangan salting?", a: "Shiddiq" },
   { q: "Siapa yang paling gampang ketawa?", a: "Rhesi" },
-  { q: "Siapa yang paling perhatian?", a: "Keduanya" },
-  { q: "Siapa yang paling mungkin ngajak liburan mendadak?", a: "Shiddiq" },
+  { q: "Siapa yang paling sering bikin kangen tanpa sadar?", a: "Keduanya" },
+  { q: "Siapa yang paling mungkin jadi orang tua paling santai?", a: "Shiddiq" },
 ];
 
 interface ChatInterfaceProps {
@@ -351,7 +351,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
                 {!commandInput && !isTyping && !currentNodeId.startsWith("rsvp-") && currentNodeId !== "doa-start" && (
                   <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
                     {[
-                      { label: "Telling Jokes 😄", onClick: () => callLLM("Buatin jokes dong") },
+                      { label: "Telling Jokes 😄", onClick: () => callLLM("Ceritain jokes lucu garing dong, bebas topiknya") },
                       { label: "🎮 Games", onClick: () => setGameActive(true) },
                       { label: "📍 Lokasi acara", onClick: () => callLLM("Lokasinya dimana?") },
                       { label: "👗 Dress code", onClick: () => callLLM("Dress code-nya apa?") },
