@@ -160,10 +160,10 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
                     {wedding.bride.name} &amp; {wedding.groom.name} · {wedding.date.display}
                   </p>
                 </div>
-                <div className="ml-auto flex items-center gap-2">
+                {/* <div className="ml-auto flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[10px] text-[var(--color-muted)]">Terminal Ready</span>
-                </div>
+                </div> */}
               </header>
 
               {/* ── Messages ───────────────────────────────────────────── */}
