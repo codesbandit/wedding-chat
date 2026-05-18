@@ -33,6 +33,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
     confirmRsvpNo,
     confirmPax,
     sendWish,
+    callLLM,
   } = useConversation(guestName, guestId, slug);
 
   // Auto-start conversation since we removed loading screen
@@ -98,7 +99,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
       else if (lowerInput.includes("hadiah") || lowerInput.includes("kado")) dispatch("hadiah", commandInput.trim());
       else if (lowerInput.includes("rsvp") || lowerInput.includes("konfirmasi")) dispatch("rsvp-start", commandInput.trim());
       else if (lowerInput.includes("doa") || lowerInput.includes("ucapan")) dispatch("doa-start", commandInput.trim());
-      else dispatch("menu", "Perintah tidak diketaui. Menampilkan opsi Menu:"); // Unknown -> Fallback menu
+      else callLLM(commandInput.trim()); // Unknown -> tanya LLM
     }
     setCommandInput("");
   };

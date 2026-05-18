@@ -31,6 +31,12 @@ interface ConversationState {
   pax: number;
 }
 
+// LLM history entry (lightweight — just role + content for API context)
+interface LLMHistoryEntry {
+  role: "user" | "assistant";
+  content: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -59,6 +65,9 @@ export function useConversation(guestName: string, guestId: number, slug: string
 
   // Prevent duplicate dispatches while animating
   const locked = useRef(false);
+
+  // LLM conversation history — grows as user chats freely
+  const llmHistory = useRef<LLMHistoryEntry[]>([]);
 
   // ── Stream a single message into the list word-by-word ──────────────────
   const streamMessage = useCallback(
@@ -225,6 +234,57 @@ export function useConversation(guestName: string, guestId: number, slug: string
     [addUserMessage, guestId, playNode]
   );
 
+  // ── LLM: free-form conversation via OpenRouter ────────────────────────────
+  const callLLM = useCallback(
+    async (userMessage: string) => {
+      if (locked.current) return;
+      locked.current = true;
+
+      addUserMessage(userMessage);
+
+      // Show typing indicator
+      setState((s) => ({ ...s, isTyping: true }));
+      await new Promise((r) =>
+        setTimeout(r, randDelay(TYPING_DELAY_MIN, TYPING_DELAY_MAX))
+      );
+      setState((s) => ({ ...s, isTyping: false }));
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: userMessage,
+            guestName,
+            history: llmHistory.current,
+          }),
+        });
+
+        const data = await res.json();
+        const reply: string =
+          res.ok && data.reply
+            ? data.reply
+            : "Maaf, saya tidak bisa menjawab saat ini. Silakan pilih salah satu menu di atas. 🙏";
+
+        // Keep history for next LLM call (max 12 entries = 6 turns)
+        llmHistory.current = [
+          ...llmHistory.current,
+          { role: "user" as const, content: userMessage },
+          { role: "assistant" as const, content: reply },
+        ].slice(-12);
+
+        await streamMessage(reply);
+      } catch {
+        await streamMessage(
+          "Maaf, terjadi gangguan koneksi. Silakan pilih menu di atas atau coba lagi. 🙏"
+        );
+      } finally {
+        locked.current = false;
+      }
+    },
+    [addUserMessage, guestName, streamMessage]
+  );
+
   return {
     messages: state.messages,
     isTyping: state.isTyping,
@@ -237,5 +297,6 @@ export function useConversation(guestName: string, guestId: number, slug: string
     confirmRsvpNo,
     confirmPax,
     sendWish,
+    callLLM,
   };
 }
