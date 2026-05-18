@@ -9,11 +9,14 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wedding Invitation — Shiddiq & Pasangan",
-  description: "You are invited. A personal AI assistant awaits.",
+  title: "Undangan Pernikahan — Rhesi & Shiddiq",
+  description: "Dengan penuh syukur, kami mengundang kamu ke hari bahagia kami.",
+  icons: {
+    icon: "/icon.svg",
+  },
   openGraph: {
-    title: "Wedding Invitation — Shiddiq & Pasangan",
-    description: "You are invited. A personal AI assistant awaits.",
+    title: "Undangan Pernikahan — Rhesi & Shiddiq",
+    description: "Dengan penuh syukur, kami mengundang kamu ke hari bahagia kami.",
   },
 };
 
@@ -28,7 +31,7 @@ export default function RootLayout({
       className={`${ibmPlexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-[#0a0a0a] text-[#f0f0f0] font-mono">{children}</body>
+      <body className="min-h-full bg-[#fdfcfc] text-[#201d1d] font-mono">{children}</body>
     </html>
   );
 }

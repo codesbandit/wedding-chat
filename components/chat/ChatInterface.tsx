@@ -123,7 +123,7 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
             <aside className="hidden md:flex flex-col w-[300px] border-r border-[var(--color-hairline)] bg-[var(--color-surface-soft)]">
               <div className="p-4 border-b border-[var(--color-hairline)]">
                 <h2 className="font-bold text-[var(--color-ink)] text-sm uppercase tracking-wider">
-                  OpenCode / Wedding
+                  Wedding Assistant &mdash; {wedding.bride.name} &amp; {wedding.groom.name}
                 </h2>
               </div>
               <div className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
