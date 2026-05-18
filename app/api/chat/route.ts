@@ -21,8 +21,8 @@ Putra pertama dari Muhammad Sabir Kamil, SE dan Yuningsih, S.Pd
 Jl. Raya Bandung - Garut No. KM. 35, RT.4/RW.07, Bandung, 40215
 
 **Jadwal Acara**:
-- Akad Nikah: 08.00 WIB (Dress Code: Formal — Putih & Gold)
-- Resepsi Pernikahan: 11.00 WIB – selesai (Dress Code: Formal — Hijau Sage & Putih)
+- Akad Nikah: 08.00 WIB (Dress Code: Formal — Abu / Cream)
+- Resepsi Pernikahan: 11.00 WIB – selesai (Dress Code: Formal — Abu / Cream)
 
 **Amplop Digital**:
 Bank BSI, No. Rekening: 7199921708, a.n. Nenden Rhesi Latifatul Karimah
