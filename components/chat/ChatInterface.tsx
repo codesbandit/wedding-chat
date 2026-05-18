@@ -9,6 +9,20 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { wedding } from "@/lib/wedding-config";
 import { nodes } from "@/lib/ai-engine/conversation-tree";
 
+// ── Game: How Well Do You Know The Couple ─────────────────────────────────
+const COUPLE_GAME = [
+  { q: "Siapa yang pertama kali ngajak ngobrol duluan?", a: "Rhesi" },
+  { q: "Siapa yang paling romantis?", a: "Keduanya" },
+  { q: "Siapa yang paling lama siap-siap?", a: "Rhesi" },
+  { q: "Siapa yang paling sering telat?", a: "Shiddiq" },
+  { q: "Siapa yang paling gampang lapar?", a: "Shiddiq" },
+  { q: "Siapa yang paling suka jajan?", a: "Rhesi" },
+  { q: "Siapa yang paling sering ngajak jalan?", a: "Keduanya" },
+  { q: "Siapa yang paling gampang ketawa?", a: "Rhesi" },
+  { q: "Siapa yang paling perhatian?", a: "Keduanya" },
+  { q: "Siapa yang paling mungkin ngajak liburan mendadak?", a: "Shiddiq" },
+];
+
 interface ChatInterfaceProps {
   guestName: string;
   guestId: number;
@@ -21,6 +35,12 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
   const [paxSelected, setPaxSelected] = useState<number | null>(null);
   const [commandInput, setCommandInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Game state
+  const [gameActive, setGameActive] = useState(false);
+  const [gameQIdx, setGameQIdx] = useState(0);
+  const [gameScore, setGameScore] = useState(0);
+  const [gamePick, setGamePick] = useState<string | null>(null);
 
   const {
     messages,
@@ -102,6 +122,27 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
       else callLLM(commandInput.trim()); // Unknown -> tanya LLM
     }
     setCommandInput("");
+  };
+
+  // ── Game handlers ───────────────────────────────────────────────────────
+  const handleGameAnswer = (pick: string) => {
+    if (gamePick !== null) return;
+    setGamePick(pick);
+    if (pick === COUPLE_GAME[gameQIdx].a) setGameScore((s) => s + 1);
+  };
+  const handleGameNext = () => {
+    if (gameQIdx + 1 >= COUPLE_GAME.length) {
+      setGameQIdx(COUPLE_GAME.length); // signals done
+    } else {
+      setGameQIdx((i) => i + 1);
+      setGamePick(null);
+    }
+  };
+  const handleGameClose = () => {
+    setGameActive(false);
+    setGameQIdx(0);
+    setGameScore(0);
+    setGamePick(null);
   };
 
   return (
@@ -310,17 +351,17 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
                 {!commandInput && !isTyping && !currentNodeId.startsWith("rsvp-") && currentNodeId !== "doa-start" && (
                   <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
                     {[
-                      { label: "Telling Jokes 😄", text: "Buatin jokes dong" },
-                      { label: "📍 Lokasi acara", text: "Lokasinya dimana?" },
-                      { label: "👗 Dress code", text: "Dress code-nya apa?" },
-                      { label: "🕐 Jam acara", text: "Jam berapa acaranya?" },
-                      { label: "💌 Amplop digital", text: "Info amplop digital" },
-                      { label: "🎮 Games", text: "Ajak ngobrol seru-seruan dong" },
+                      { label: "Telling Jokes 😄", onClick: () => callLLM("Buatin jokes dong") },
+                      { label: "🎮 Games", onClick: () => setGameActive(true) },
+                      { label: "📍 Lokasi acara", onClick: () => callLLM("Lokasinya dimana?") },
+                      { label: "👗 Dress code", onClick: () => callLLM("Dress code-nya apa?") },
+                      { label: "🕐 Jam acara", onClick: () => callLLM("Jam berapa acaranya?") },
+                      { label: "💌 Amplop digital", onClick: () => callLLM("Info amplop digital") },
                     ].map((chip) => (
                       <button
                         key={chip.label}
                         type="button"
-                        onClick={() => callLLM(chip.text)}
+                        onClick={chip.onClick}
                         className="flex-shrink-0 text-[11px] text-[var(--color-muted)] border border-[var(--color-hairline-strong)] rounded-full px-3 py-1 hover:bg-[var(--color-surface-card)] hover:text-[var(--color-ink)] transition-colors whitespace-nowrap"
                       >
                         {chip.label}
@@ -381,6 +422,147 @@ export default function ChatInterface({ guestName, guestId, slug }: ChatInterfac
             </div>
 
             </div> {/* Close Main Chat Area */}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* ── Game Modal: How Well Do You Know The Couple ───────── */}
+      <AnimatePresence>
+        {gameActive && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.93, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.93, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-sm bg-[var(--color-canvas)] border border-[var(--color-hairline-strong)] rounded-2xl p-6 shadow-2xl"
+            >
+              {gameQIdx >= COUPLE_GAME.length ? (
+                // ── Result screen ─────────────────────────────────────────
+                <div className="text-center space-y-4">
+                  <p className="text-4xl">
+                    {gameScore >= 9 ? "🏆" : gameScore >= 6 ? "🎉" : gameScore >= 3 ? "😄" : "😂"}
+                  </p>
+                  <h3 className="font-bold text-lg text-[var(--color-ink)]">Selesai!</h3>
+                  <p className="text-5xl font-bold text-[var(--color-ink)]">
+                    {gameScore}
+                    <span className="text-xl text-[var(--color-muted)]">/{COUPLE_GAME.length}</span>
+                  </p>
+                  <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+                    {gameScore >= 9
+                      ? "Kamu kenal mereka banget! Bahkan lebih dari mereka sendiri 😄"
+                      : gameScore >= 6
+                      ? "Lumayan! Kamu cukup kenal pasangan Rhesi & Shiddiq 😊"
+                      : gameScore >= 3
+                      ? "Masih banyak yang perlu dipelajari tentang mereka 😄"
+                      : "Kayaknya baru pertama kali dengar tentang mereka ya? 😂"}
+                  </p>
+                  <button
+                    onClick={handleGameClose}
+                    className="w-full py-2.5 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-hairline-strong)] text-sm text-[var(--color-ink)] hover:opacity-75 transition-opacity"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              ) : (
+                // ── Question screen ────────────────────────────────────────
+                <div className="space-y-5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[var(--color-muted)] font-mono tracking-wider">
+                      {gameQIdx + 1} / {COUPLE_GAME.length}
+                    </span>
+                    <button
+                      onClick={handleGameClose}
+                      className="text-[var(--color-dim)] hover:text-[var(--color-muted)] text-xl leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-0.5 bg-[var(--color-surface-card)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--color-ink)] rounded-full transition-all duration-500"
+                      style={{ width: `${(gameQIdx / COUPLE_GAME.length) * 100}%` }}
+                    />
+                  </div>
+
+                  {/* Label */}
+                  <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-widest font-mono">
+                    How Well Do You Know The Couple?
+                  </p>
+
+                  {/* Question */}
+                  <p className="text-base font-medium text-[var(--color-ink)] leading-snug">
+                    {COUPLE_GAME[gameQIdx].q}
+                  </p>
+
+                  {/* Answer buttons */}
+                  <div className="space-y-2">
+                    {["Rhesi", "Shiddiq", "Keduanya"].map((opt) => {
+                      const isCorrect = COUPLE_GAME[gameQIdx].a === opt;
+                      const isChosen = gamePick === opt;
+                      const revealed = gamePick !== null;
+
+                      let cls =
+                        "w-full py-2.5 px-4 rounded-xl border text-sm text-left transition-all duration-200 ";
+                      if (!revealed) {
+                        cls +=
+                          "border-[var(--color-hairline-strong)] bg-[var(--color-surface-soft)] text-[var(--color-ink)] hover:bg-[var(--color-surface-card)] cursor-pointer active:scale-95";
+                      } else if (isCorrect) {
+                        cls += "border-emerald-500/50 bg-emerald-500/10 text-emerald-700";
+                      } else if (isChosen) {
+                        cls += "border-red-400/40 bg-red-400/8 text-red-600";
+                      } else {
+                        cls +=
+                          "border-[var(--color-hairline)] bg-transparent text-[var(--color-dim)] opacity-40";
+                      }
+
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handleGameAnswer(opt)}
+                          disabled={revealed}
+                          className={cls}
+                        >
+                          {revealed && isCorrect && "✓ "}
+                          {revealed && isChosen && !isCorrect && "✗ "}
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Feedback + Next */}
+                  <AnimatePresence>
+                    {gamePick !== null && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-3"
+                      >
+                        <p className="text-sm text-[var(--color-muted)]">
+                          {gamePick === COUPLE_GAME[gameQIdx].a
+                            ? "✨ Benar!"
+                            : `Jawabannya: ${COUPLE_GAME[gameQIdx].a}`}
+                        </p>
+                        <button
+                          onClick={handleGameNext}
+                          className="w-full py-2.5 rounded-xl bg-[var(--color-ink)] text-[var(--color-canvas)] text-sm font-medium hover:opacity-80 transition-opacity active:scale-95"
+                        >
+                          {gameQIdx + 1 >= COUPLE_GAME.length ? "Lihat Hasil →" : "Lanjut →"}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
