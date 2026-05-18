@@ -6,8 +6,8 @@ export default function TypingIndicator() {
   return (
     <div className="flex items-end gap-2 px-4 py-2">
       {/* AI avatar dot */}
-      <div className="w-6 h-6 rounded-full bg-emerald-400/20 border border-emerald-400/30 flex items-center justify-center flex-shrink-0">
-        <span className="text-[8px] text-emerald-400">AI</span>
+      <div className="w-6 h-6 rounded-sm bg-[var(--color-surface-card)] border border-[var(--color-hairline-strong)] flex items-center justify-center flex-shrink-0 mb-0.5">
+        <span className="text-[8px] text-[var(--color-ink)] font-bold">AI</span>
       </div>
 
       {/* Bubble with bouncing dots */}

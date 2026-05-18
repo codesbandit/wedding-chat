@@ -34,13 +34,13 @@ export const nodes: Record<string, ConversationNode> = {
   greeting: {
     id: "greeting",
     messages: [
-      "Sistem diinisialisasi... ✓",
-      "Memuat profil tamu... ✓",
+    //   "Sistem diinisialisasi... ✓",
+    //   "Memuat profil tamu... ✓",
       "Wedding Assistant siap. ✓",
-      "---",
+    //   "---",
       "Halo, {guestName} 👋",
       `Saya adalah Wedding Assistant milik ${wedding.groom.name} & ${wedding.bride.name}.`,
-      "Saya di sini untuk membantu kamu mengetahui semua hal tentang hari spesial kami. 🌿",
+      "Saya di sini untuk membantu kamu mengetahui semua hal tentang hari spesial kami. ❤️",
     ],
     prompts: [
       { label: "📍 Lokasi Acara", target: "lokasi" },
@@ -78,7 +78,8 @@ export const nodes: Record<string, ConversationNode> = {
     ],
     card: "map",
     prompts: [
-      { label: "🗓️ Lihat Jadwal", target: "jadwal" },
+      { label: "📖 Cerita Kami", target: "cerita" },
+      { label: "🗓️ Jadwal Acara", target: "jadwal" },
       { label: "✅ RSVP Sekarang", target: "rsvp-start" },
       { label: "↩ Menu Utama", target: "menu" },
     ],
@@ -93,7 +94,6 @@ export const nodes: Record<string, ConversationNode> = {
     ],
     card: "schedule",
     prompts: [
-      { label: "📍 Lokasi & Maps", target: "lokasi" },
       { label: "✅ RSVP Sekarang", target: "rsvp-start" },
       { label: "↩ Menu Utama", target: "menu" },
     ],
@@ -112,7 +112,7 @@ export const nodes: Record<string, ConversationNode> = {
       `${wedding.quote.text}\n\n— ${wedding.quote.by}`,
     ],
     prompts: [
-      { label: "📍 Lokasi Acara", target: "lokasi" },
+      { label: "🗓️ Jadwal Acara", target: "jadwal" },
       { label: "✅ RSVP Sekarang", target: "rsvp-start" },
       { label: "↩ Menu Utama", target: "menu" },
     ],
@@ -190,6 +190,7 @@ export const nodes: Record<string, ConversationNode> = {
     prompts: [
       { label: "💌 Kirim Doa & Harapan", target: "doa-start" },
       { label: "💳 Amplop Digital", target: "amplop" },
+      { label: "🎁 Kirim Hadiah", target: "hadiah" },
       { label: "↩ Menu Utama", target: "menu" },
     ],
   },
