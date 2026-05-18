@@ -1,0 +1,45 @@
+// WeddingGPT — Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Guest {
+  id                Int      @id @default(autoincrement())
+  slug              String   @unique @db.VarChar(120)
+  guest_name        String   @db.VarChar(200)
+  category          Category @default(FRIEND)
+  attendance_status Status   @default(PENDING)
+  pax               Int      @default(0)
+  created_at        DateTime @default(now())
+  wishes            Wish[]
+
+  @@map("guests")
+}
+
+model Wish {
+  id         Int      @id @default(autoincrement())
+  guest      Guest    @relation(fields: [guest_id], references: [id])
+  guest_id   Int
+  message    String   @db.Text
+  created_at DateTime @default(now())
+
+  @@map("wishes")
+}
+
+enum Category {
+  FAMILY
+  FRIEND
+  COLLEAGUE
+  TECH
+}
+
+enum Status {
+  PENDING
+  ATTENDING
+  NOT_ATTENDING
+}
