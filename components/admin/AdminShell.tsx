@@ -14,6 +14,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const navItems = [
     { href: "/admin/guests", label: "Tamu" },
     { href: "/admin/wishes", label: "Ucapan" },
+    { href: "/admin/models", label: "Model AI" },
   ];
 
   return (

@@ -43,3 +43,14 @@ enum Status {
   ATTENDING
   NOT_ATTENDING
 }
+
+model AiModel {
+  id         Int      @id @default(autoincrement())
+  label      String   @db.VarChar(100)
+  model_id   String   @db.VarChar(200)
+  priority   Int      @default(0)
+  enabled    Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@map("ai_models")
+}

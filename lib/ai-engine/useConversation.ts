@@ -234,7 +234,7 @@ export function useConversation(guestName: string, guestId: number, slug: string
     [addUserMessage, guestId, playNode]
   );
 
-  // ── LLM: free-form conversation via OpenRouter ────────────────────────────
+  // ── LLM: free-form conversation via OpenRouter (streaming) ──────────────────
   const callLLM = useCallback(
     async (userMessage: string) => {
       if (locked.current) return;
@@ -242,12 +242,8 @@ export function useConversation(guestName: string, guestId: number, slug: string
 
       addUserMessage(userMessage);
 
-      // Show typing indicator
+      // Show typing indicator while connecting / during think phase
       setState((s) => ({ ...s, isTyping: true }));
-      await new Promise((r) =>
-        setTimeout(r, randDelay(TYPING_DELAY_MIN, TYPING_DELAY_MAX))
-      );
-      setState((s) => ({ ...s, isTyping: false }));
 
       try {
         const res = await fetch("/api/chat", {
@@ -260,21 +256,96 @@ export function useConversation(guestName: string, guestId: number, slug: string
           }),
         });
 
-        const data = await res.json();
-        const reply: string =
-          res.ok && data.reply
-            ? data.reply
-            : "Maaf, saya tidak bisa menjawab saat ini. Silakan pilih salah satu menu di atas. 🙏";
+        if (!res.ok || !res.body) {
+          setState((s) => ({ ...s, isTyping: false }));
+          await streamMessage(
+            "Maaf, saya tidak bisa menjawab saat ini. Silakan pilih salah satu menu di atas. 🙏"
+          );
+          return;
+        }
 
-        // Keep history for next LLM call (max 12 entries = 6 turns)
-        llmHistory.current = [
-          ...llmHistory.current,
-          { role: "user" as const, content: userMessage },
-          { role: "assistant" as const, content: reply },
-        ].slice(-12);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let lineBuf = "";
+        let fullReply = "";
+        let msgId: string | null = null;
 
-        await streamMessage(reply);
+        outer: while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          lineBuf += decoder.decode(value, { stream: true });
+          const lines = lineBuf.split("\n");
+          lineBuf = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") break outer;
+
+            try {
+              const parsed = JSON.parse(data) as { c?: string };
+              const chunk = parsed.c ?? "";
+              if (!chunk) continue;
+
+              fullReply += chunk;
+
+              if (!msgId) {
+                // First visible content — hide typing indicator, create bubble
+                msgId = uid();
+                const capturedId = msgId;
+                setState((s) => ({
+                  ...s,
+                  isTyping: false,
+                  messages: [
+                    ...s.messages,
+                    { id: capturedId, role: "ai", text: chunk, isStreaming: true },
+                  ],
+                }));
+              } else {
+                const capturedId = msgId;
+                const capturedReply = fullReply;
+                setState((s) => ({
+                  ...s,
+                  messages: s.messages.map((m) =>
+                    m.id === capturedId ? { ...m, text: capturedReply } : m
+                  ),
+                }));
+              }
+            } catch {
+              // malformed chunk — skip
+            }
+          }
+        }
+
+        // Finalize message bubble
+        if (msgId) {
+          const capturedId = msgId;
+          setState((s) => ({
+            ...s,
+            isTyping: false,
+            messages: s.messages.map((m) =>
+              m.id === capturedId ? { ...m, isStreaming: false } : m
+            ),
+          }));
+        } else {
+          // Model responded but all content was in think tags (empty reply)
+          setState((s) => ({ ...s, isTyping: false }));
+          await streamMessage(
+            "Maaf, saya tidak bisa menjawab saat ini. Silakan pilih salah satu menu di atas. 🙏"
+          );
+        }
+
+        if (fullReply) {
+          // Keep history for next LLM call (max 12 entries = 6 turns)
+          llmHistory.current = [
+            ...llmHistory.current,
+            { role: "user" as const, content: userMessage },
+            { role: "assistant" as const, content: fullReply },
+          ].slice(-12);
+        }
       } catch {
+        setState((s) => ({ ...s, isTyping: false }));
         await streamMessage(
           "Maaf, terjadi gangguan koneksi. Silakan pilih menu di atas atau coba lagi. 🙏"
         );

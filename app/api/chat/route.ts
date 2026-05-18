@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";
 
-// ── System prompt: inject all wedding context ────────────────────────────────
+// ── Simple in-memory model cache (60s TTL) ───────────────────────────────────
+let modelCache: { id: string; label: string }[] = [];
+let cacheExpiry = 0;
+
+async function getActiveModels(): Promise<{ id: string; label: string }[]> {
+  if (Date.now() < cacheExpiry && modelCache.length > 0) return modelCache;
+  const rows = await prisma.aiModel.findMany({
+    where: { enabled: true },
+    orderBy: { priority: "asc" },
+    select: { model_id: true, label: true },
+  });
+  modelCache = rows.map((r: { model_id: string; label: string }) => ({ id: r.model_id, label: r.label }));
+  cacheExpiry = Date.now() + 60_000;
+  return modelCache;
+}
+
+// ── System prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(guestName: string): string {
   return `Kamu adalah Wedding Assistant untuk pernikahan Rhesi & Shiddiq. Kamu berbicara dalam Bahasa Indonesia yang hangat dan ramah.
 
@@ -44,11 +60,52 @@ Alamat: 3/15 Cluster Rasamala Bumi Panyawangan Real Estate, Cimekar, Cileunyi, B
 - JANGAN tampilkan tag <think>, chain of thought, atau reasoning internal apapun`;
 }
 
-// ── Strip <think>...</think> reasoning tags from model output ────────────────
-function stripThinkTags(text: string): string {
-  return text
-    .replace(/<think>[\s\S]*?<\/think>/gi, "")
-    .trim();
+// ── ThinkFilter: strips <think>...</think> blocks from streaming output ────────
+class ThinkFilter {
+  private pending = "";
+  private inThink = false;
+  private readonly OPEN = "<think>";
+  private readonly CLOSE = "</think>";
+
+  feed(chunk: string): string {
+    this.pending += chunk;
+    let out = "";
+
+    while (this.pending.length > 0) {
+      if (!this.inThink) {
+        const idx = this.pending.indexOf(this.OPEN);
+        if (idx === -1) {
+          // No opening tag ahead — emit everything except last 6 chars (could be partial tag)
+          const safe = Math.max(0, this.pending.length - 6);
+          out += this.pending.slice(0, safe);
+          this.pending = this.pending.slice(safe);
+          break;
+        }
+        // Emit everything before <think>, then enter think mode
+        out += this.pending.slice(0, idx);
+        this.pending = this.pending.slice(idx + this.OPEN.length);
+        this.inThink = true;
+      } else {
+        const idx = this.pending.indexOf(this.CLOSE);
+        if (idx === -1) {
+          // Still inside think — discard all but last 8 chars (partial </think>)
+          const safe = Math.max(0, this.pending.length - 8);
+          this.pending = this.pending.slice(safe);
+          break;
+        }
+        // Exit think mode, discard up through </think>
+        this.pending = this.pending.slice(idx + this.CLOSE.length);
+        this.inThink = false;
+      }
+    }
+    return out;
+  }
+
+  finalize(): string {
+    const out = this.inThink ? "" : this.pending;
+    this.pending = "";
+    return out;
+  }
 }
 
 // ── Request body type ────────────────────────────────────────────────────────
@@ -58,21 +115,48 @@ interface ChatBody {
   history?: { role: "user" | "assistant"; content: string }[];
 }
 
-// ── POST /api/chat ───────────────────────────────────────────────────────────
+// ── Attempt to open a streaming connection to one model ───────────────────────
+async function tryModelStream(
+  modelId: string,
+  messages: object[],
+  apiKey: string
+): Promise<Response> {
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000",
+      "X-Title": "Wedding Assistant - Rhesi & Shiddiq",
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages,
+      max_tokens: 300,
+      temperature: 0.7,
+      stream: true,
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`${res.status}: ${errText.slice(0, 200)}`);
+  }
+  return res;
+}
+
+// ── POST /api/chat — returns SSE stream ──────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey || apiKey.startsWith("GANTI_")) {
-      return NextResponse.json(
-        { error: "OPENROUTER_API_KEY belum dikonfigurasi." },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: "OPENROUTER_API_KEY belum dikonfigurasi." }, { status: 503 });
     }
 
     const body: ChatBody = await req.json();
     const { message, guestName, history = [] } = body;
 
-    // Basic validation
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return NextResponse.json({ error: "Pesan tidak boleh kosong." }, { status: 400 });
     }
@@ -80,49 +164,105 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pesan terlalu panjang." }, { status: 400 });
     }
 
+    const activeModels = await getActiveModels();
+    if (activeModels.length === 0) {
+      return NextResponse.json({ error: "Tidak ada model AI yang aktif." }, { status: 503 });
+    }
+
     const messages = [
       { role: "system", content: buildSystemPrompt(guestName || "Tamu") },
-      // Include limited history for context (last 6 turns)
       ...history.slice(-6),
       { role: "user", content: message.trim() },
     ];
 
-    const res = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
-        "X-Title": "Wedding Assistant - Rhesi & Shiddiq",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        max_tokens: 300,
-        temperature: 0.7,
-      }),
-      signal: AbortSignal.timeout(20000), // 20s timeout for free model
-    });
+    // Try each model until one successfully connects
+    let upstreamRes: Response | null = null;
+    let usedModel = "";
+    let lastError = "";
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("[chat] OpenRouter error:", res.status, errText);
+    for (const model of activeModels) {
+      try {
+        upstreamRes = await tryModelStream(model.id, messages, apiKey);
+        usedModel = model.label;
+        console.log(`[chat] streaming via ${model.label}`);
+        break;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        console.warn(`[chat] ✗ ${model.label} failed, trying next — ${lastError}`);
+        cacheExpiry = 0;
+      }
+    }
+
+    if (!upstreamRes?.body) {
+      console.error("[chat] All models failed:", lastError);
       return NextResponse.json(
-        { error: "AI service tidak tersedia saat ini. Coba beberapa saat lagi." },
+        { error: "Semua model AI sedang tidak tersedia. Coba beberapa saat lagi." },
         { status: 502 }
       );
     }
 
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content ?? "";
-    const reply = stripThinkTags(raw) || "Maaf, saya tidak bisa menjawab saat ini. Silakan coba lagi.";
+    // Pipe the upstream SSE through the ThinkFilter and re-emit as SSE
+    const enc = new TextEncoder();
+    const upstreamBody = upstreamRes.body;
 
-    return NextResponse.json({ reply });
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = upstreamBody.getReader();
+        const dec = new TextDecoder();
+        const filter = new ThinkFilter();
+        let lineBuf = "";
+
+        const emit = (chunk: string) => {
+          if (chunk) controller.enqueue(enc.encode(`data: ${JSON.stringify({ c: chunk })}\n\n`));
+        };
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            lineBuf += dec.decode(value, { stream: true });
+            const lines = lineBuf.split("\n");
+            lineBuf = lines.pop() ?? "";
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const data = line.slice(6).trim();
+              if (data === "[DONE]") {
+                emit(filter.finalize());
+                controller.enqueue(enc.encode("data: [DONE]\n\n"));
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const token: string = parsed.choices?.[0]?.delta?.content ?? "";
+                if (token) emit(filter.feed(token));
+              } catch {
+                // malformed chunk — skip
+              }
+            }
+          }
+          // Stream ended without [DONE]
+          emit(filter.finalize());
+          controller.enqueue(enc.encode("data: [DONE]\n\n"));
+        } catch (err) {
+          console.error("[chat] stream error:", err);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Model": usedModel,
+      },
+    });
   } catch (err) {
     console.error("[chat] Unexpected error:", err);
-    return NextResponse.json(
-      { error: "Terjadi kesalahan. Silakan coba lagi." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Terjadi kesalahan. Silakan coba lagi." }, { status: 500 });
   }
 }
