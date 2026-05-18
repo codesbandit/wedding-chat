@@ -33,16 +33,16 @@ export const wedding = {
       time: "08.00 WIB",
       venue: "Ponyo Resto & Wedding",
       address: "Jl. Raya Bandung - Garut No. KM. 35, RT.4/RW.07, Bandung, 40215",
-      mapsUrl: "https://maps.google.com/?q=Ponyo+Resto+%26+Wedding+Jl+Raya+Bandung+Garut+KM+35+Bandung",
-      dressCode: "Formal — Putih & Gold",
+      mapsUrl: "https://share.google/hp7569KZFGpGxODjy",
+      dressCode: "Formal — Abu / Cream",
     },
     {
       name: "Resepsi Pernikahan",
-      time: "11.00 – selesai WIB",
+      time: "11.00 – 14:00 WIB",
       venue: "Ponyo Resto & Wedding",
       address: "Jl. Raya Bandung - Garut No. KM. 35, RT.4/RW.07, Bandung, 40215",
-      mapsUrl: "https://maps.google.com/?q=Ponyo+Resto+%26+Wedding+Jl+Raya+Bandung+Garut+KM+35+Bandung",
-      dressCode: "Formal — Hijau Sage & Putih",
+      mapsUrl: "https://share.google/hp7569KZFGpGxODjy",
+      dressCode: "Formal — Abu / Cream",
     },
   ],
   story: [
@@ -67,6 +67,11 @@ export const wedding = {
     {
       bank: "BSI",
       accountNumber: "7199921708",
+      accountName: "Nenden Rhesi Latifatul Karimah",
+    },
+    {
+      bank: "BCA",
+      accountNumber: "7753263910",
       accountName: "Nenden Rhesi Latifatul Karimah",
     },
   ],
