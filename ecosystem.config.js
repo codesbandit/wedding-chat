@@ -4,7 +4,7 @@ module.exports = {
       name: "wedding-gpt",
       script: "node_modules/.bin/next",
       args: "start",
-      cwd: "/var/www/wedding-gpt",   // ← change to your actual deploy path
+      cwd: "/www/wwwroot/undangan.digyta.net",
       instances: 1,
       autorestart: true,
       watch: false,

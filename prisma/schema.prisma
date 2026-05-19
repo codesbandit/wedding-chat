@@ -9,13 +9,15 @@ datasource db {
 }
 
 model Guest {
-  id                Int      @id @default(autoincrement())
-  slug              String   @unique @db.VarChar(120)
-  guest_name        String   @db.VarChar(200)
-  category          Category @default(FRIEND)
-  attendance_status Status   @default(PENDING)
-  pax               Int      @default(0)
-  created_at        DateTime @default(now())
+  id                Int       @id @default(autoincrement())
+  slug              String    @unique @db.VarChar(120)
+  guest_name        String    @db.VarChar(200)
+  category          Category  @default(FRIEND)
+  attendance_status Status    @default(PENDING)
+  pax               Int       @default(0)
+  visit_count       Int       @default(0)
+  last_visited_at   DateTime?
+  created_at        DateTime  @default(now())
   wishes            Wish[]
 
   @@map("guests")

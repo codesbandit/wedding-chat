@@ -4,7 +4,18 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   const guests = await prisma.guest.findMany({
     orderBy: { created_at: "desc" },
-    include: { _count: { select: { wishes: true } } },
+    select: {
+      id: true,
+      slug: true,
+      guest_name: true,
+      category: true,
+      attendance_status: true,
+      pax: true,
+      visit_count: true,
+      last_visited_at: true,
+      created_at: true,
+      _count: { select: { wishes: true } },
+    },
   });
   return NextResponse.json(guests);
 }

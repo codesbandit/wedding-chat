@@ -37,6 +37,15 @@ export default async function InvitePage({ params }: PageProps) {
     notFound();
   }
 
+  // Track visit — fire and forget, don't block render
+  prisma.guest.update({
+    where: { slug },
+    data: {
+      visit_count: { increment: 1 },
+      last_visited_at: new Date(),
+    },
+  }).catch(() => {});
+
   return (
     <ChatInterface
       guestName={guest.guest_name}

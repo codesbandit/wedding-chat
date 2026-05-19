@@ -13,6 +13,8 @@ interface Guest {
   category: Category;
   attendance_status: AttStatus;
   pax: number;
+  visit_count: number;
+  last_visited_at: string | null;
   created_at: string;
   _count: { wishes: number };
 }
@@ -652,6 +654,9 @@ export default function GuestsPage() {
     notAttending: guests.filter((g) => g.attendance_status === "NOT_ATTENDING").length,
     pending: guests.filter((g) => g.attendance_status === "PENDING").length,
     pax: guests.filter((g) => g.attendance_status === "ATTENDING").reduce((s, g) => s + g.pax, 0),
+    visited: guests.filter((g) => g.visit_count > 0).length,
+    notVisited: guests.filter((g) => g.visit_count === 0).length,
+    totalVisits: guests.reduce((s, g) => s + g.visit_count, 0),
   };
 
   return (
@@ -726,6 +731,9 @@ export default function GuestsPage() {
           { label: "Tidak Hadir", value: stats.notAttending, color: "#c0392b" },
           { label: "Belum Konfirmasi", value: stats.pending, color: "#9a9898" },
           { label: "Total Pax", value: stats.pax, color: "#007aff" },
+          { label: "Sudah Buka", value: stats.visited, color: "#b45309" },
+          { label: "Belum Buka", value: stats.notVisited, color: "#9a9898" },
+          { label: "Total Kunjungan", value: stats.totalVisits, color: "#6366f1" },
         ].map((s) => (
           <div
             key={s.label}
@@ -816,7 +824,7 @@ export default function GuestsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--hairline)" }}>
-                  {["Nama", "Slug", "Kategori", "Status", "Pax", "Ucapan", "Aksi"].map((h) => (
+                  {["Nama", "Slug", "Kategori", "Status", "Pax", "Ucapan", "Kunjungan", "Aksi"].map((h) => (
                     <th
                       key={h}
                       style={{
@@ -903,7 +911,28 @@ export default function GuestsPage() {
                     >
                       {g._count.wishes}
                     </td>
-                    <td style={{ padding: "12px 14px" }}>
+                    <td
+                      style={{
+                        padding: "12px 14px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: g.visit_count > 0 ? "#b45309" : "var(--dim)",
+                          }}
+                        >
+                          {g.visit_count > 0 ? `${g.visit_count}×` : "—"}
+                        </span>
+                        {g.last_visited_at && (
+                          <span style={{ fontSize: "10px", color: "var(--dim)", whiteSpace: "nowrap" }}>
+                            {new Date(g.last_visited_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                         <button
                           onClick={() => copyLink(g)}
